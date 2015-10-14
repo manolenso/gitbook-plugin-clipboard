@@ -1,9 +1,13 @@
+var clipboard = require(clipboard);
+var cherio = require('cherio');
+
+
 module.exports = {
     // Extend website resources and html
     website: {
-        assets: "./book",
+        assets: "./assets",
         js: [
-            "test.js"
+            "embed-clipboard.js"
         ],
         css: [
             "test.css"
@@ -69,16 +73,31 @@ module.exports = {
 
     // Hook process during build
     hooks: {
-        // For all the hooks, this represent the current generator
-
-        // This is called before the book is generated
-        "init": function() {
-            console.log("init!");
-        },
-
-        // This is called after the book generation
-        "finish": function() {
-            console.log("finish!");
-        }
+      // This is called before the book is generated
+      "init": function() {
+          console.log("init!");
+      },
+      page: function(page) {
+        var config = _.defaults(this.options.pluginsConfig
+          .codepen, defaultConfig);
+        _.each(page.sections, function(section) {
+          var $ = cheerio.load(section.content);
+          $('a').filter(function() {
+            var href = $(this).attr('href');
+            return parse(href).protocol ===
+              'clipboard';
+          }).each(function(index, a) {
+            a = $(a);
+            var rst = parse(a.attr('href'), true);
+            a.replaceWith(template(_.extend({},
+              config, rst.query, {
+                user: rst.host,
+                pen: rst.pathname.slice(1)
+              })));
+          });
+          section.content = $.html();
+        });
+        return page;
+      }
     }
-};
+  };
